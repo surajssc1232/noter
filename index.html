@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Matrix Style Blogging</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
   <style>
@@ -26,10 +26,10 @@
     /* Container for blog posts (positioned over the canvas) */
     #blog-container {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      bottom: 10px;
+      top: calc(5px + env(safe-area-inset-top));
+      left: calc(5px + env(safe-area-inset-left));
+      right: calc(5px + env(safe-area-inset-right));
+      bottom: calc(5px + env(safe-area-inset-bottom));
       overflow-y: auto;
       z-index: 1;
       pointer-events: none;
@@ -213,10 +213,10 @@
       }
       
       #blog-container {
-        top: 5px;
-        left: 5px;
-        right: 5px;
-        bottom: 5px;
+        top: calc(5px + env(safe-area-inset-top));
+        left: calc(5px + env(safe-area-inset-left));
+        right: calc(5px + env(safe-area-inset-right));
+        bottom: calc(5px + env(safe-area-inset-bottom));
       }
       
       .blog-post {
@@ -290,7 +290,7 @@
         if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
           drops[i] = 0;
         }
-        drops[i]++;
+        drops[i] += 0.5;
       }
       requestAnimationFrame(drawMatrix);
     }
