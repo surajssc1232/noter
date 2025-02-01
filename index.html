@@ -44,6 +44,7 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       box-shadow: 0 6px 15px rgba(0, 255, 0, 0.15);
+      transition: transform 0.5s ease-out, opacity 0.5s ease-out;
     }
     .blog-post.selected {
       border: 2px solid red;
@@ -173,7 +174,7 @@
       white-space: nowrap;           /* Keep text in a single line */
       border-right: 0.15em solid #0f0;/* The blinking caret */
       width: 0;                      /* Start with zero width */
-      animation: typing 3s steps(30, end), blink-caret 0.75s step-end infinite;
+      animation: typing 3s steps(30, end) forwards, blink-caret 0.75s step-end infinite;
     }
 
     /* Keyframes for typewriter effect */
@@ -224,6 +225,12 @@
         padding: 8px;
         border-radius: 8px;
       }
+    }
+
+    /* Slide out animation for blog deletion */
+    .slide-out-left {
+      transform: translateX(-100%);
+      opacity: 0;
     }
   </style>
 </head>
@@ -332,16 +339,20 @@
         post.addEventListener('touchend', function(e) {
           let touchEndX = e.changedTouches[0].clientX;
           if (touchStartX - touchEndX > 50) {  // if swiped left more than 50px
-            // Delete this blog post
-            const nextSelection = post.nextElementSibling || post.previousElementSibling;
-            const idToDelete = post.dataset.id;
-            blogPosts = blogPosts.filter(p => p.id != idToDelete);
-            post.parentElement.removeChild(post);
-            saveBlogPosts();
-            // If the deleted post was selected, update selection
-            if (selectedPost === post) {
-              selectPost(nextSelection);
-            }
+            // Add slide-out animation then delete the blog post after the transition ends
+            post.classList.add('slide-out-left');
+            post.addEventListener('transitionend', function() {
+              const nextSelection = post.nextElementSibling || post.previousElementSibling;
+              const idToDelete = post.dataset.id;
+              blogPosts = blogPosts.filter(p => p.id != idToDelete);
+              saveBlogPosts();
+              if (selectedPost === post) {
+                selectPost(nextSelection);
+              }
+              if (post.parentElement) {
+                post.parentElement.removeChild(post);
+              }
+            }, { once: true });
           }
         });
       }
