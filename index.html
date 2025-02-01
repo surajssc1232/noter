@@ -378,7 +378,7 @@
         if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
           drops[i] = 0;
         }
-        drops[i] += 0.5;
+        drops[i] += 0.25;
       }
       // Every 5 seconds, add a special drop of "made by suraj"
       let now = performance.now();
@@ -394,7 +394,7 @@
       for (let i = specialDrops.length - 1; i >= 0; i--) {
         let drop = specialDrops[i];
         ctx.fillText("made by suraj", drop.x, drop.y * fontSize);
-        drop.y += 0.5;
+        drop.y += 0.25;
         if (drop.y * fontSize > canvas.height) {
           specialDrops.splice(i, 1);
         }
