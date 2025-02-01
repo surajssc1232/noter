@@ -36,9 +36,12 @@
     .blog-post {
       margin-bottom: 20px;
       padding: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      border: 1px solid #0f0;
+      background: rgba(0, 0, 0, 0.3); /* more translucent background */
+      border: 1px solid rgba(0, 255, 0, 0.5);
       pointer-events: auto;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 4px 10px rgba(0, 255, 0, 0.2);
     }
     .blog-post.selected {
       border: 2px solid red;
@@ -125,6 +128,24 @@
       }
     }
     */
+    /* Added vanish animation for mobile instruction messages/hints */
+    #instructions.vanish {
+      animation: vanish-out 1s forwards;
+    }
+    @keyframes vanish-out {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    
+    /* Added fade-in effect for new blog posts */
+    .new-post {
+      opacity: 0;
+      animation: fadeIn 1s forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -207,13 +228,17 @@
 
     function createBlogPostElement(postData) {
       const post = document.createElement('div');
-      post.className = 'blog-post';
+      post.classList.add('blog-post', 'new-post');
       post.dataset.id = postData.id;
       post.innerHTML = '<strong>' + postData.time + '</strong><br>' + postData.content.replace(/\n/g, '<br>');
       // Add click event so user can select the post with a mouse click
       post.addEventListener('click', function(e) {
         e.stopPropagation();
         selectPost(post);
+      });
+      // Remove the fade-in class after the animation completes
+      post.addEventListener('animationend', function() {
+        post.classList.remove('new-post');
       });
       return post;
     }
@@ -253,6 +278,15 @@
       composeText.value = '';
       composeModal.style.display = 'block';
       composeText.focus();
+      // If on mobile, reset and then vanish the modal prompt after 2 seconds
+      if (window.innerWidth < 600) {
+        const modalPrompt = composeModal.querySelector('p');
+        modalPrompt.classList.remove('vanish'); // reset any vanish styling
+        modalPrompt.style.opacity = 1;           // ensure it is fully visible
+        setTimeout(() => {
+          modalPrompt.classList.add('vanish');
+        }, 2000);
+      }
     }
 
     // Close compose modal
@@ -401,7 +435,16 @@
       document.getElementById('instructions').textContent = 'Double tap anywhere to compose/post a blog';
       const modalPrompt = composeModal.querySelector('p');
       modalPrompt.textContent = 'Double tap to post, Esc to cancel';
-
+      
+      // Vanish the instructions overlay after 2 seconds
+      setTimeout(() => {
+        document.getElementById('instructions').classList.add('vanish');
+      }, 2000);
+      // Also vanish the modal prompt (if initially visible) after 2 seconds
+      setTimeout(() => {
+        modalPrompt.classList.add('vanish');
+      }, 2000);
+      
       let lastTapTime = 0;
       document.addEventListener('touchend', function(e) {
         const currentTime = new Date().getTime();
