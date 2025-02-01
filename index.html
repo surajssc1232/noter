@@ -321,6 +321,28 @@
       post.addEventListener('animationend', function() {
         post.classList.remove('new-post');
       });
+      // Add swipe-left detection for mobile devices to delete a blog post
+      if (window.innerWidth < 600) {
+        let touchStartX = 0;
+        post.addEventListener('touchstart', function(e) {
+          touchStartX = e.changedTouches[0].clientX;
+        });
+        post.addEventListener('touchend', function(e) {
+          let touchEndX = e.changedTouches[0].clientX;
+          if (touchStartX - touchEndX > 50) {  // if swiped left more than 50px
+            // Delete this blog post
+            const nextSelection = post.nextElementSibling || post.previousElementSibling;
+            const idToDelete = post.dataset.id;
+            blogPosts = blogPosts.filter(p => p.id != idToDelete);
+            post.parentElement.removeChild(post);
+            saveBlogPosts();
+            // If the deleted post was selected, update selection
+            if (selectedPost === post) {
+              selectPost(nextSelection);
+            }
+          }
+        });
+      }
       return post;
     }
 
@@ -514,7 +536,7 @@
     // DOUBLE TAP DETECTION for MOBILE DEVICES
     if (window.innerWidth < 600) {
       // Update instructions and modal prompt for mobile
-      document.getElementById('instructions').textContent = 'Double tap to compose/post a blog, triple tap to delete a post';
+      document.getElementById('instructions').textContent = 'Double tap to compose/post a blog';
       const modalPrompt = composeModal.querySelector('p');
       modalPrompt.textContent = 'Double tap to post, Esc to cancel';
       
@@ -562,16 +584,6 @@
               editMode = false;
               editTarget = null;
               openComposeModal();
-            }
-          } else if (tapCount >= 3) {
-            // Triple tap detected: delete the selected blog post (if one exists)
-            if (selectedPost) {
-              const nextSelection = selectedPost.nextElementSibling || selectedPost.previousElementSibling;
-              const idToDelete = selectedPost.dataset.id;
-              blogPosts = blogPosts.filter(post => post.id != idToDelete);
-              selectedPost.parentElement.removeChild(selectedPost);
-              saveBlogPosts();
-              selectPost(nextSelection);
             }
           }
           tapCount = 0;
