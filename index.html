@@ -186,6 +186,39 @@
     const composeModal = document.getElementById('compose-modal');
     const composeText = document.getElementById('compose-text');
 
+    // NEW: Add persistence using localStorage
+    let blogPosts = [];
+    const STORAGE_KEY = 'matrix_blog_posts';
+
+    function saveBlogPosts() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(blogPosts));
+    }
+
+    function createBlogPostElement(postData) {
+      const post = document.createElement('div');
+      post.className = 'blog-post';
+      post.dataset.id = postData.id;
+      post.innerHTML = '<strong>' + postData.time + '</strong><br>' + postData.content.replace(/\n/g, '<br>');
+      // Add click event so user can select the post with a mouse click
+      post.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectPost(post);
+      });
+      return post;
+    }
+
+    function loadBlogPosts() {
+      const savedPosts = localStorage.getItem(STORAGE_KEY);
+      if (savedPosts) {
+        blogPosts = JSON.parse(savedPosts);
+        // Render posts so that newest posts are on top
+        blogPosts.forEach(postData => {
+          const postElement = createBlogPostElement(postData);
+          blogContainer.prepend(postElement);
+        });
+      }
+    }
+
     // Global variables for selection and edit mode
     let selectedPost = null;
     let editMode = false;
@@ -218,20 +251,15 @@
       editTarget = null;
     }
 
-    // Add a new blog post with a timestamp
+    // UPDATED: Add a new blog post with a timestamp and update persistent storage
     function addBlogPost(text) {
-      const post = document.createElement('div');
-      post.className = 'blog-post';
+      const id = Date.now(); // Generate a unique id
       const time = new Date().toLocaleTimeString();
-      post.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
-
-      // Add click event so user can select the post with a mouse click
-      post.addEventListener('click', function(e) {
-        e.stopPropagation();
-        selectPost(post);
-      });
-
+      const postData = { id, time, content: text };
+      blogPosts.push(postData);
+      const post = createBlogPostElement(postData);
       blogContainer.prepend(post);
+      saveBlogPosts();
     }
 
     // Global keydown listener for creating and posting blogs
@@ -243,9 +271,15 @@
           const text = composeText.value.trim();
           if (text) {
             if (editMode && editTarget) {
-              // Update the existing post with a new timestamp
+              // Update the existing post with a new timestamp and update localStorage
+              const id = editTarget.dataset.id;
               const time = new Date().toLocaleTimeString();
               editTarget.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
+              const post = blogPosts.find(post => post.id == id);
+              if (post) {
+                post.time = time;
+                post.content = text;
+              }
             } else {
               addBlogPost(text);
             }
@@ -253,6 +287,7 @@
           closeComposeModal();
           editMode = false;
           editTarget = null;
+          saveBlogPosts();
         }
       } else {
         if (e.key.toLowerCase() === 'n') {
@@ -275,10 +310,13 @@
             selectPost(blogContainer.lastElementChild);
           }
         } else if (e.key === 'Delete') {
-          // Delete the selected blog post
+          // Delete the selected blog post and update persistent storage
           if (selectedPost) {
             const nextSelection = selectedPost.nextElementSibling || selectedPost.previousElementSibling;
+            const idToDelete = selectedPost.dataset.id;
+            blogPosts = blogPosts.filter(post => post.id != idToDelete);
             selectedPost.parentElement.removeChild(selectedPost);
+            saveBlogPosts();
             selectPost(nextSelection);
           }
         } else if (e.key.toLowerCase() === 'e') {
@@ -318,9 +356,14 @@
       const text = composeText.value.trim();
       if (text) {
         if (editMode && editTarget) {
-          // Update an existing post with a new timestamp
+          const id = editTarget.dataset.id;
           const time = new Date().toLocaleTimeString();
           editTarget.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
+          const post = blogPosts.find(post => post.id == id);
+          if (post) {
+            post.time = time;
+            post.content = text;
+          }
         } else {
           addBlogPost(text);
         }
@@ -328,11 +371,15 @@
       closeComposeModal();
       editMode = false;
       editTarget = null;
+      saveBlogPosts();
     });
 
     cancelButton.addEventListener('click', function(e) {
       closeComposeModal();
     });
+
+    // Load persisted blog posts on page load
+    loadBlogPosts();
   </script>
 </body>
 </html>
