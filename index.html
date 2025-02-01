@@ -78,7 +78,10 @@
       font-size: 14px;
       z-index: 3;
     }
-    /* Mobile specific styles */
+    /* Removed mobile button styles:
+       #new-post-button and #compose-buttons are no longer used.
+    */
+    /* 
     #new-post-button {
       display: none;
       position: fixed;
@@ -96,6 +99,9 @@
     #compose-buttons {
       display: none;
     }
+    */
+    /* Removed media queries for mobile buttons */
+    /*
     @media (max-width: 600px) {
       #new-post-button {
         display: block;
@@ -118,6 +124,7 @@
         cursor: pointer;
       }
     }
+    */
   </style>
 </head>
 <body>
@@ -127,21 +134,25 @@
   <!-- Container for blog posts -->
   <div id="blog-container"></div>
   
-  <!-- Compose modal for new blog post -->
+  <!-- Compose modal for new blog post (removed mobile buttons below) -->
   <div id="compose-modal">
     <textarea id="compose-text" placeholder="Write your blog post here..."></textarea>
+    <!-- Updated prompt for mobile (will be overwritten by JS on mobile) -->
     <p style="color:#0f0;">Press Ctrl+Enter to post, Esc to cancel.</p>
+    <!-- Removed mobile compose buttons
     <div id="compose-buttons">
       <button id="post-button">Post</button>
       <button id="cancel-button">Cancel</button>
     </div>
+    -->
   </div>
   
   <!-- Instruction overlay -->
   <div id="instructions">Press 'N' for new blog post</div>
   
-  <!-- Mobile new post button -->
+  <!-- Removed mobile new post button
   <button id="new-post-button">New Post</button>
+  -->
   
   <script>
     // Matrix background animation
@@ -340,6 +351,8 @@
       }
     });
 
+    // REMOVED: Mobile button event listeners
+    /*
     // Mobile: Add event listener to New Post button
     const newPostButton = document.getElementById('new-post-button');
     newPostButton.addEventListener('click', function() {
@@ -377,9 +390,59 @@
     cancelButton.addEventListener('click', function(e) {
       closeComposeModal();
     });
+    */
 
     // Load persisted blog posts on page load
     loadBlogPosts();
+
+    // DOUBLE TAP DETECTION for MOBILE DEVICES
+    if (window.innerWidth < 600) {
+      // Update instructions and modal prompt for mobile
+      document.getElementById('instructions').textContent = 'Double tap anywhere to compose/post a blog';
+      const modalPrompt = composeModal.querySelector('p');
+      modalPrompt.textContent = 'Double tap to post, Esc to cancel';
+
+      let lastTapTime = 0;
+      document.addEventListener('touchend', function(e) {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTapTime;
+        if (tapLength < 300 && tapLength > 0) {
+          // Double tap detected
+          if (composeModal.style.display === 'block') {
+            // If modal is open, double tap posts the blog
+            const text = composeText.value.trim();
+            if (text) {
+              if (editMode && editTarget) {
+                const id = editTarget.dataset.id;
+                const time = new Date().toLocaleTimeString();
+                editTarget.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
+                const post = blogPosts.find(post => post.id == id);
+                if (post) {
+                  post.time = time;
+                  post.content = text;
+                }
+              } else {
+                addBlogPost(text);
+              }
+            }
+            closeComposeModal();
+            editMode = false;
+            editTarget = null;
+            saveBlogPosts();
+          } else {
+            // If modal is not open, open compose modal for new post
+            editMode = false;
+            editTarget = null;
+            openComposeModal();
+          }
+          lastTapTime = 0;
+          e.preventDefault();
+          return false;
+        } else {
+          lastTapTime = currentTime;
+        }
+      });
+    }
   </script>
 </body>
 </html>
