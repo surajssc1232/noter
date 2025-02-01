@@ -362,6 +362,9 @@
     for (let i = 0; i < columns; i++) {
       drops[i] = Math.random() * canvas.height;
     }
+    // New variables for the special drop "made by suraj"
+    let specialDrops = [];
+    let lastSpecialDropTime = performance.now();
 
     function drawMatrix() {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
@@ -377,6 +380,26 @@
         }
         drops[i] += 0.5;
       }
+      // Every 5 seconds, add a special drop of "made by suraj"
+      let now = performance.now();
+      if (now - lastSpecialDropTime > 5000) {
+        lastSpecialDropTime = now;
+        let textWidth = ctx.measureText("made by suraj").width;
+        // Ensure the text fits within canvas width
+        let x = Math.random() * (canvas.width - textWidth);
+        specialDrops.push({ x: x, y: 0 });
+      }
+
+      // Draw the special drops and update their positions
+      for (let i = specialDrops.length - 1; i >= 0; i--) {
+        let drop = specialDrops[i];
+        ctx.fillText("made by suraj", drop.x, drop.y * fontSize);
+        drop.y += 0.5;
+        if (drop.y * fontSize > canvas.height) {
+          specialDrops.splice(i, 1);
+        }
+      }
+      
       requestAnimationFrame(drawMatrix);
     }
     drawMatrix();
