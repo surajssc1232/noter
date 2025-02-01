@@ -159,11 +159,31 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    /* Typewriter animation for the fullscreen message */
+    #fullscreen-message {
       color: #0f0;
       font-size: 24px;
       font-family: 'Space Mono', monospace;
-      z-index: 10;
-      cursor: pointer;
+      overflow: hidden;              /* Hide the overflow */
+      white-space: nowrap;           /* Keep text in a single line */
+      border-right: 0.15em solid #0f0;/* The blinking caret */
+      width: 0;                      /* Start with zero width */
+      animation: typing 3s steps(30, end), blink-caret 0.75s step-end infinite;
+    }
+
+    /* Keyframes for typewriter effect */
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes blink-caret {
+      from, to { border-color: transparent; }
+      50% { border-color: #0f0; }
     }
   </style>
 </head>
@@ -190,7 +210,9 @@
   <!-- Instruction overlay -->
   <div id="instructions">Press 'N' for new blog post</div>
   <!-- Fullscreen overlay for mobile devices -->
-  <div id="fullscreen-overlay">Tap anywhere to enter fullscreen</div>
+  <div id="fullscreen-overlay">
+    <div id="fullscreen-message">Tap anywhere to enter fullscreen</div>
+  </div>
   
   <!-- Removed mobile new post button
   <button id="new-post-button">New Post</button>
@@ -375,7 +397,8 @@
           } else if (!selectedPost && blogContainer.lastElementChild) {
             selectPost(blogContainer.lastElementChild);
           }
-        } else if (e.key === 'Delete') {
+        } else if (e.key === 'Delete' || (e.ctrlKey && e.key.toLowerCase() === 'd')) {
+          e.preventDefault();
           // Delete the selected blog post and update persistent storage
           if (selectedPost) {
             const nextSelection = selectedPost.nextElementSibling || selectedPost.previousElementSibling;
@@ -453,7 +476,7 @@
     // DOUBLE TAP DETECTION for MOBILE DEVICES
     if (window.innerWidth < 600) {
       // Update instructions and modal prompt for mobile
-      document.getElementById('instructions').textContent = 'Double tap anywhere to compose/post a blog';
+      document.getElementById('instructions').textContent = 'Double tap to compose/post a blog, triple tap to delete a post';
       const modalPrompt = composeModal.querySelector('p');
       modalPrompt.textContent = 'Double tap to post, Esc to cancel';
       
@@ -466,45 +489,56 @@
         modalPrompt.classList.add('vanish');
       }, 2000);
       
-      let lastTapTime = 0;
+      let tapCount = 0;
+      let tapTimer = null;
       document.addEventListener('touchend', function(e) {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTapTime;
-        if (tapLength < 300 && tapLength > 0) {
-          // Double tap detected
-          if (composeModal.style.display === 'block') {
-            // If modal is open, double tap posts the blog
-            const text = composeText.value.trim();
-            if (text) {
-              if (editMode && editTarget) {
-                const id = editTarget.dataset.id;
-                const time = new Date().toLocaleTimeString();
-                editTarget.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
-                const post = blogPosts.find(post => post.id == id);
-                if (post) {
-                  post.time = time;
-                  post.content = text;
-                }
-              } else {
-                addBlogPost(text);
-              }
-            }
-            closeComposeModal();
-            editMode = false;
-            editTarget = null;
-            saveBlogPosts();
-          } else {
-            // If modal is not open, open compose modal for new post
-            editMode = false;
-            editTarget = null;
-            openComposeModal();
-          }
-          lastTapTime = 0;
-          e.preventDefault();
-          return false;
-        } else {
-          lastTapTime = currentTime;
+        tapCount++;
+        if (tapTimer) {
+          clearTimeout(tapTimer);
         }
+        tapTimer = setTimeout(() => {
+          if (tapCount === 2) {
+            // Double tap detected: compose or post a blog
+            if (composeModal.style.display === 'block') {
+              const text = composeText.value.trim();
+              if (text) {
+                if (editMode && editTarget) {
+                  const id = editTarget.dataset.id;
+                  const time = new Date().toLocaleTimeString();
+                  editTarget.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
+                  const post = blogPosts.find(post => post.id == id);
+                  if (post) {
+                    post.time = time;
+                    post.content = text;
+                  }
+                } else {
+                  addBlogPost(text);
+                }
+              }
+              closeComposeModal();
+              editMode = false;
+              editTarget = null;
+              saveBlogPosts();
+            } else {
+              // If modal is not open, open compose modal for a new post
+              editMode = false;
+              editTarget = null;
+              openComposeModal();
+            }
+          } else if (tapCount >= 3) {
+            // Triple tap detected: delete the selected blog post (if one exists)
+            if (selectedPost) {
+              const nextSelection = selectedPost.nextElementSibling || selectedPost.previousElementSibling;
+              const idToDelete = selectedPost.dataset.id;
+              blogPosts = blogPosts.filter(post => post.id != idToDelete);
+              selectedPost.parentElement.removeChild(selectedPost);
+              saveBlogPosts();
+              selectPost(nextSelection);
+            }
+          }
+          tapCount = 0;
+          tapTimer = null;
+        }, 300);
       });
     }
 
