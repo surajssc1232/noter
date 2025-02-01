@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Matrix Style Blogging</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
   <style>
     /* Set basic page style and matrix theme colors */
     html, body {
@@ -12,7 +13,7 @@
       height: 100%;
       overflow: hidden;
       background: black;
-      font-family: monospace;
+      font-family: 'Space Mono', monospace;
       color: #0f0;
     }
     /* Canvas for the matrix animation */
@@ -64,7 +65,7 @@
       background: black;
       color: #0f0;
       border: 1px solid #0f0;
-      font-family: monospace;
+      font-family: 'Space Mono', monospace;
       font-size: 16px;
       padding: 10px;
       resize: none;
@@ -188,7 +189,7 @@
     resizeCanvas();
 
     const fontSize = 16;
-    ctx.font = fontSize + 'px monospace';
+    ctx.font = fontSize + 'px "Space Mono", monospace';
     const columns = Math.floor(canvas.width / fontSize);
     const drops = [];
     for (let i = 0; i < columns; i++) {
