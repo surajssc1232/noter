@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matrix Style Blogging</title>
+  <style>
+    /* Set basic page style and matrix theme colors */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+      font-family: monospace;
+      color: #0f0;
+    }
+    /* Canvas for the matrix animation */
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+    /* Container for blog posts (positioned over the canvas) */
+    #blog-container {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      overflow-y: auto;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .blog-post {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #0f0;
+      pointer-events: auto;
+    }
+    .blog-post.selected {
+      border: 2px solid red;
+    }
+    /* Compose modal for writing new blog posts */
+    #compose-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      padding: 20px;
+      border: 1px solid #0f0;
+      display: none;
+      z-index: 2;
+    }
+    #compose-modal textarea {
+      width: 400px;
+      height: 200px;
+      background: black;
+      color: #0f0;
+      border: 1px solid #0f0;
+      font-family: monospace;
+      font-size: 16px;
+      padding: 10px;
+      resize: none;
+    }
+    /* Instruction overlay at the bottom */
+    #instructions {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      padding: 5px 10px;
+      border: 1px solid #0f0;
+      font-size: 14px;
+      z-index: 3;
+    }
+    /* Mobile specific styles */
+    #new-post-button {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #0f0;
+      color: #0f0;
+      font-size: 16px;
+      padding: 10px 15px;
+      border-radius: 5px;
+      z-index: 4;
+      cursor: pointer;
+    }
+    #compose-buttons {
+      display: none;
+    }
+    @media (max-width: 600px) {
+      #new-post-button {
+        display: block;
+      }
+      #instructions {
+        display: none;
+      }
+      #compose-buttons {
+        display: block;
+        margin-top: 10px;
+        text-align: center;
+      }
+      #compose-buttons button {
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid #0f0;
+        color: #0f0;
+        font-size: 16px;
+        padding: 5px 10px;
+        margin: 0 5px;
+        cursor: pointer;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Matrix background canvas -->
+  <canvas id="matrixCanvas"></canvas>
+
+  <!-- Container for blog posts -->
+  <div id="blog-container"></div>
+  
+  <!-- Compose modal for new blog post -->
+  <div id="compose-modal">
+    <textarea id="compose-text" placeholder="Write your blog post here..."></textarea>
+    <p style="color:#0f0;">Press Ctrl+Enter to post, Esc to cancel.</p>
+    <div id="compose-buttons">
+      <button id="post-button">Post</button>
+      <button id="cancel-button">Cancel</button>
+    </div>
+  </div>
+  
+  <!-- Instruction overlay -->
+  <div id="instructions">Press 'N' for new blog post</div>
+  
+  <!-- Mobile new post button -->
+  <button id="new-post-button">New Post</button>
+  
+  <script>
+    // Matrix background animation
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const fontSize = 16;
+    ctx.font = fontSize + 'px monospace';
+    const columns = Math.floor(canvas.width / fontSize);
+    const drops = [];
+    for (let i = 0; i < columns; i++) {
+      drops[i] = Math.random() * canvas.height;
+    }
+
+    function drawMatrix() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#0F0';
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+      requestAnimationFrame(drawMatrix);
+    }
+    drawMatrix();
+
+    // Blog functionality
+    const blogContainer = document.getElementById('blog-container');
+    const composeModal = document.getElementById('compose-modal');
+    const composeText = document.getElementById('compose-text');
+
+    // Global variables for selection and edit mode
+    let selectedPost = null;
+    let editMode = false;
+    let editTarget = null;
+
+    // Helper to update selected post
+    function selectPost(post) {
+      if (selectedPost) {
+        selectedPost.classList.remove('selected');
+      }
+      selectedPost = post;
+      if (selectedPost) {
+        selectedPost.classList.add('selected');
+        // Scroll the selected post into view smoothly
+        selectedPost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Open compose modal (clears previous text)
+    function openComposeModal() {
+      composeText.value = '';
+      composeModal.style.display = 'block';
+      composeText.focus();
+    }
+
+    // Close compose modal
+    function closeComposeModal() {
+      composeModal.style.display = 'none';
+      editMode = false;
+      editTarget = null;
+    }
+
+    // Add a new blog post with a timestamp
+    function addBlogPost(text) {
+      const post = document.createElement('div');
+      post.className = 'blog-post';
+      const time = new Date().toLocaleTimeString();
+      post.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
+
+      // Add click event so user can select the post with a mouse click
+      post.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectPost(post);
+      });
+
+      blogContainer.prepend(post);
+    }
+
+    // Global keydown listener for creating and posting blogs
+    document.addEventListener('keydown', function(e) {
+      if (composeModal.style.display === 'block') {
+        if (e.key === 'Escape') {
+          closeComposeModal();
+        } else if ((e.key === 'Enter' || e.key === 'Return') && e.ctrlKey) {
+          const text = composeText.value.trim();
+          if (text) {
+            if (editMode && editTarget) {
+              // Update the existing post with a new timestamp
+              const time = new Date().toLocaleTimeString();
+              editTarget.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
+            } else {
+              addBlogPost(text);
+            }
+          }
+          closeComposeModal();
+          editMode = false;
+          editTarget = null;
+        }
+      } else {
+        if (e.key.toLowerCase() === 'n') {
+          // Open compose modal for a new blog post
+          editMode = false;
+          editTarget = null;
+          openComposeModal();
+        } else if (e.key === 'ArrowDown') {
+          // Select the next blog post
+          if (selectedPost && selectedPost.nextElementSibling) {
+            selectPost(selectedPost.nextElementSibling);
+          } else if (!selectedPost && blogContainer.firstElementChild) {
+            selectPost(blogContainer.firstElementChild);
+          }
+        } else if (e.key === 'ArrowUp') {
+          // Select the previous blog post
+          if (selectedPost && selectedPost.previousElementSibling) {
+            selectPost(selectedPost.previousElementSibling);
+          } else if (!selectedPost && blogContainer.lastElementChild) {
+            selectPost(blogContainer.lastElementChild);
+          }
+        } else if (e.key === 'Delete') {
+          // Delete the selected blog post
+          if (selectedPost) {
+            const nextSelection = selectedPost.nextElementSibling || selectedPost.previousElementSibling;
+            selectedPost.parentElement.removeChild(selectedPost);
+            selectPost(nextSelection);
+          }
+        } else if (e.key.toLowerCase() === 'e') {
+          // Edit the selected blog post
+          if (selectedPost) {
+            editMode = true;
+            editTarget = selectedPost;
+            let htmlContent = selectedPost.innerHTML;
+            const idx = htmlContent.indexOf('<br>');
+            let content = "";
+            if (idx !== -1) {
+              content = htmlContent.substring(idx + 4);
+              // Replace <br> tags with newline characters
+              content = content.replace(/<br>/g, "\n");
+            }
+            composeText.value = content;
+            composeModal.style.display = 'block';
+            composeText.focus();
+          }
+        }
+      }
+    });
+
+    // Mobile: Add event listener to New Post button
+    const newPostButton = document.getElementById('new-post-button');
+    newPostButton.addEventListener('click', function() {
+      editMode = false;
+      editTarget = null;
+      openComposeModal();
+    });
+
+    // Mobile: Post and Cancel buttons in compose modal
+    const postButton = document.getElementById('post-button');
+    const cancelButton = document.getElementById('cancel-button');
+
+    postButton.addEventListener('click', function(e) {
+      const text = composeText.value.trim();
+      if (text) {
+        if (editMode && editTarget) {
+          // Update an existing post with a new timestamp
+          const time = new Date().toLocaleTimeString();
+          editTarget.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
+        } else {
+          addBlogPost(text);
+        }
+      }
+      closeComposeModal();
+      editMode = false;
+      editTarget = null;
+    });
+
+    cancelButton.addEventListener('click', function(e) {
+      closeComposeModal();
+    });
+  </script>
+</body>
+</html>
