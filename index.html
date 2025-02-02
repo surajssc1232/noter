@@ -94,6 +94,9 @@
       box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
       width: 90%;
       max-width: 600px;
+      max-height: 90vh;  /* Limit height to 90% of viewport height */
+      overflow-y: auto;  /* Allow scrolling if content is too tall */
+      box-sizing: border-box;
     }
     #compose-modal input {
       width: 100%;
@@ -258,12 +261,28 @@
 
     @media (max-width: 600px) {
       #compose-modal {
-        padding: 20px;
+        padding: 15px;
         width: 95%;
+        top: 50%;
+        max-height: 80vh;  /* Slightly smaller on mobile */
+      }
+
+      #compose-modal input {
+        padding: 8px;
+        margin-bottom: 10px;
+        font-size: 16px;  /* Better font size for mobile */
       }
 
       #compose-modal textarea {
-        height: 200px;
+        height: 150px;  /* Shorter textarea on mobile */
+        padding: 8px;
+        font-size: 16px;  /* Better font size for mobile */
+        margin-bottom: 10px;
+      }
+
+      #compose-modal p {
+        font-size: 14px;
+        margin-top: 8px;
       }
 
       .blog-post {
