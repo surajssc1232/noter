@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Matrix Style Blogging</title>
+  <!-- Add Prism CSS and JS files before the existing styles -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
   <style>
     /* Set basic page style and matrix theme colors */
@@ -427,6 +430,58 @@
         line-height: 1.5;
       }
     }
+
+    /* Add styles for code blocks */
+    pre[class*="language-"] {
+      background: rgba(0, 0, 0, 0.7) !important;
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      border-radius: 8px;
+      margin: 1em 0;
+      padding: 1em;
+      overflow: auto;
+    }
+
+    code[class*="language-"] {
+      text-shadow: none !important;
+      background: none !important;
+      font-family: 'Space Mono', monospace !important;
+      font-size: 14px;
+    }
+
+    /* Customize Prism theme colors to match matrix theme */
+    .token.comment,
+    .token.prolog,
+    .token.doctype,
+    .token.cdata {
+      color: #4a9c4a !important;
+    }
+
+    .token.function,
+    .token.class-name {
+      color: #52ff52 !important;
+    }
+
+    .token.keyword,
+    .token.operator {
+      color: #00ff00 !important;
+    }
+
+    .token.string {
+      color: #7fff7f !important;
+    }
+
+    .token.number {
+      color: #b3ffb3 !important;
+    }
+
+    /* Style for line numbers */
+    .line-numbers .line-numbers-rows {
+      border-right: 1px solid rgba(0, 255, 0, 0.3) !important;
+    }
+
+    .line-numbers-rows > span:before {
+      color: rgba(0, 255, 0, 0.5) !important;
+    }
   </style>
 </head>
 <body>
@@ -486,6 +541,20 @@
   <div class="modal-overlay"></div>
   <div class="blog-post-modal"></div>
   
+  <!-- Add Prism.js and plugins before closing body tag -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+  <!-- Add common language support -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-ruby.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+
   <script>
     // Matrix background animation
     const canvas = document.getElementById('matrixCanvas');
@@ -546,7 +615,7 @@
       post.innerHTML = `
         <strong>${postData.time}</strong>
         <h3>${postData.title}</h3>
-        ${postData.content.replace(/\n/g, '<br>')}
+        ${postData.content}
       `;
       // Add click event so user can select the post with a mouse click
       post.addEventListener('click', function(e) {
@@ -591,10 +660,10 @@
       const savedPosts = localStorage.getItem(STORAGE_KEY);
       if (savedPosts) {
         blogPosts = JSON.parse(savedPosts);
-        // Render posts so that newest posts are on top
         blogPosts.forEach(postData => {
           const postElement = createBlogPostElement(postData);
           blogContainer.prepend(postElement);
+          Prism.highlightAllUnder(postElement);
         });
       }
     }
@@ -645,14 +714,41 @@
     function addBlogPost(title, text) {
       const id = Date.now();
       const time = new Date().toLocaleTimeString();
-      const postData = { id, time, title, content: text };
+      const formattedContent = formatCodeBlocks(text);
+      const postData = { id, time, title, content: formattedContent };
       blogPosts.push(postData);
       const post = createBlogPostElement(postData);
       blogContainer.prepend(post);
       saveBlogPosts();
+      
+      // Re-initialize Prism highlighting for the new post
+      Prism.highlightAllUnder(post);
     }
 
-    // Global keydown listener for creating and posting blogs
+    // Update the edit functionality in the keydown listener
+    function getPostContent(post) {
+      // Get raw content by removing title and timestamp
+      const content = Array.from(post.childNodes)
+        .filter(node => !node.querySelector('h3') && !node.querySelector('strong'))
+        .map(node => {
+          if (node.tagName === 'PRE') {
+            // Handle code blocks - convert back to markdown format
+            const code = node.querySelector('code');
+            const language = Array.from(code.classList)
+              .find(cls => cls.startsWith('language-'))
+              ?.replace('language-', '') || 'plaintext';
+            return `\`\`\`${language}\n${code.textContent}\n\`\`\``;
+          } else {
+            // Handle regular text - convert <br> back to newlines
+            return node.textContent.replace(/<br\s*\/?>/g, '\n');
+          }
+        })
+        .join('\n');
+      
+      return content;
+    }
+
+    // Update the edit case in the keydown listener
     document.addEventListener('keydown', function(e) {
       if (composeModal.style.display === 'block') {
         if (e.key === 'Escape') {
@@ -662,28 +758,29 @@
           const text = composeText.value.trim();
           if (title && text) {
             if (editMode && editTarget) {
-              // Update the existing post with a new timestamp and update localStorage
+              // Update the existing post with formatted content
               const id = editTarget.dataset.id;
               const time = new Date().toLocaleTimeString();
+              const formattedContent = formatCodeBlocks(text);
               editTarget.innerHTML = `
                 <strong>${time}</strong>
                 <h3>${title}</h3>
-                ${text.replace(/\n/g, '<br>')}
+                ${formattedContent}
               `;
               const post = blogPosts.find(post => post.id == id);
               if (post) {
                 post.time = time;
                 post.title = title;
-                post.content = text;
+                post.content = formattedContent;
               }
+              // Re-initialize Prism highlighting for the edited post
+              Prism.highlightAllUnder(editTarget);
             } else {
               addBlogPost(title, text);
             }
+            saveBlogPosts();
           }
           closeComposeModal();
-          editMode = false;
-          editTarget = null;
-          saveBlogPosts();
         }
       } else {
         if (e.key.toLowerCase() === 'n') {
@@ -721,14 +818,9 @@
           if (selectedPost) {
             editMode = true;
             editTarget = selectedPost;
-            let htmlContent = selectedPost.innerHTML;
             const title = selectedPost.querySelector('h3').textContent;
-            const idx = htmlContent.indexOf('<br>');
-            let content = "";
-            if (idx !== -1) {
-              content = htmlContent.substring(idx + 4);
-              content = content.replace(/<br>/g, "\n");
-            }
+            const content = getPostContent(selectedPost);
+            
             composeTitle.value = title;
             composeText.value = content;
             composeModal.style.display = 'block';
@@ -931,11 +1023,11 @@
     function expandBlogPost(post) {
       const title = post.querySelector('h3').textContent;
       const time = post.querySelector('strong').textContent;
-      // Get all text content after the h3 element, excluding the timestamp
+      // Get the content HTML directly to preserve code formatting
       const content = Array.from(post.childNodes)
-        .filter(node => !node.querySelector && node.textContent.trim())  // Get only text nodes
-        .map(node => node.textContent)
-        .join('<br>');
+        .filter(node => !node.querySelector('h3') && !node.querySelector('strong'))
+        .map(node => node.outerHTML || node.textContent)
+        .join('');
       
       blogPostModal.innerHTML = `
         <strong>${time}</strong>
@@ -943,10 +1035,11 @@
         <div class="content">${content}</div>
       `;
       
+      // Re-initialize Prism highlighting in the modal
+      Prism.highlightAllUnder(blogPostModal);
+      
       modalOverlay.style.display = 'block';
       blogPostModal.style.display = 'block';
-      
-      // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     }
 
@@ -968,6 +1061,107 @@
         closeExpandedPost();
       }
     });
+
+    // Add this function to detect code language
+    function detectLanguage(code) {
+      // Common language patterns
+      const patterns = {
+        javascript: /(var|let|const|function|=>|console\.log|document\.|window\.)/,
+        python: /(def|import|print|class|if\s+[\w_]+:)/,
+        java: /(public|private|class|void|String|int|boolean)/,
+        cpp: /(#include|std::|cout|cin|void|int\s+main)/,
+        csharp: /(using\s+System|namespace|public\s+class)/,
+        html: /(<\/?[a-z][\s\S]*>)/i,
+        css: /({[\s\S]*?}|@media|@keyframes|#[\w-]+\s*{)/,
+        ruby: /(def|require|puts|attr_|module)/,
+        sql: /(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)/i
+      };
+
+      // Check each pattern
+      for (const [language, pattern] of Object.entries(patterns)) {
+        if (pattern.test(code)) {
+          return language;
+        }
+      }
+
+      return 'plaintext';
+    }
+
+    // Update the formatCodeBlocks function to handle automatic language detection
+    function formatCodeBlocks(content) {
+      let formattedContent = '';
+      
+      // Split content into text and potential code blocks
+      const lines = content.split('\n');
+      let inCodeBlock = false;
+      let codeBlock = '';
+      let tempContent = '';
+      
+      lines.forEach((line, index) => {
+        // Check for code-like content (indentation or special characters)
+        const isCodeLike = /^(\s{4,}|\t+).*$/.test(line) || 
+                          /[{}\[\]()$<>]/.test(line) ||
+                          /^(const|let|var|function|class|def|import|public|#include)/.test(line);
+                          
+        if (isCodeLike && !inCodeBlock) {
+          // Start a new code block
+          if (tempContent) {
+            formattedContent += tempContent.replace(/\n/g, '<br>');
+            tempContent = '';
+          }
+          inCodeBlock = true;
+          codeBlock = line + '\n';
+        } else if (!isCodeLike && inCodeBlock) {
+          // End code block
+          if (codeBlock) {
+            const language = detectLanguage(codeBlock);
+            formattedContent += `<pre class="line-numbers"><code class="language-${language}">${
+              codeBlock.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .trim()
+            }</code></pre>`;
+            codeBlock = '';
+          }
+          inCodeBlock = false;
+          tempContent = line + '\n';
+        } else if (inCodeBlock) {
+          // Continue code block
+          codeBlock += line + '\n';
+        } else {
+          // Continue regular text
+          tempContent += line + '\n';
+        }
+        
+        // Handle the last line
+        if (index === lines.length - 1) {
+          if (inCodeBlock && codeBlock) {
+            const language = detectLanguage(codeBlock);
+            formattedContent += `<pre class="line-numbers"><code class="language-${language}">${
+              codeBlock.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .trim()
+            }</code></pre>`;
+          } else if (tempContent) {
+            formattedContent += tempContent.replace(/\n/g, '<br>');
+          }
+        }
+      });
+      
+      // Also handle explicit code blocks with backticks if they exist
+      formattedContent = formattedContent.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        const language = lang || detectLanguage(code) || 'plaintext';
+        return `<pre class="line-numbers"><code class="language-${language}">${
+          code.replace(/&/g, '&amp;')
+             .replace(/</g, '&lt;')
+             .replace(/>/g, '&gt;')
+             .trim()
+        }</code></pre>`;
+      });
+      
+      return formattedContent;
+    }
   </script>
 </body>
 </html>
