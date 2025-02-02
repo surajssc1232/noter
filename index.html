@@ -296,6 +296,40 @@
       .blog-post h3 {
         font-size: 1.5em;
       }
+
+      .blog-post strong {
+        position: absolute;
+        top: auto;  /* Remove top positioning */
+        bottom: 10px;  /* Position at bottom */
+        left: 20px;  /* Position at left */
+        right: auto;  /* Remove right positioning */
+      }
+
+      .blog-post {
+        padding-bottom: 40px;  /* Add more padding at bottom to accommodate timestamp */
+      }
+
+      /* Adjust copy button position for mobile */
+      .copy-btn {
+        bottom: 8px;  /* Align with timestamp */
+      }
+
+      /* Also update modal timestamp position for consistency */
+      .blog-post-modal strong {
+        position: absolute;
+        top: auto;
+        bottom: 15px;
+        left: 25px;
+        right: auto;
+      }
+
+      .blog-post-modal {
+        padding-bottom: 50px;  /* Add more padding at bottom */
+      }
+
+      .blog-post-modal .copy-btn {
+        bottom: 13px;
+      }
     }
 
     /* Slide out animation for blog deletion */
