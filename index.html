@@ -852,18 +852,40 @@
       return content;
     }
 
-    // Update the edit case in the keydown listener
+    // Update the keydown event listener to handle Ctrl+Enter in input fields
     document.addEventListener('keydown', function(e) {
-      // Only handle keypress if not in an input/textarea
+      // Handle Ctrl+Enter for posting regardless of where the focus is
+      if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault(); // Prevent default behavior
+        const composeModal = document.getElementById('compose-modal');
+        if (composeModal.style.display === 'block') {
+          const title = composeTitle.value.trim();
+          const text = composeText.value.trim();
+          if (title && text) {
+            if (editMode && editTarget) {
+              // ... existing edit mode code ...
+            } else {
+              addBlogPost(title, text);
+            }
+            closeComposeModal();
+            editMode = false;
+            editTarget = null;
+            saveBlogPosts();
+          }
+        }
+        return;
+      }
+
+      // Only handle other shortcuts if not in input/textarea
       if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         if (e.key.toLowerCase() === 'n') {
-          e.preventDefault(); // Prevent 'n' from being typed
+          e.preventDefault();
           editMode = false;
           editTarget = null;
           composeModal.style.display = 'block';
-          composeTitle.value = ''; // Clear title field
-          composeText.value = '';  // Clear content field
-          composeTitle.focus();    // Focus on title field first
+          composeTitle.value = '';
+          composeText.value = '';
+          composeTitle.focus();
         } else if (e.key === 'Escape') {
           if (composeModal.style.display === 'block') {
             closeComposeModal();
@@ -871,34 +893,6 @@
             selectedPost.classList.remove('selected');
             selectedPost = null;
           }
-        } else if ((e.key === 'Enter' || e.key === 'Return') && e.ctrlKey) {
-          const title = composeTitle.value.trim();
-          const text = composeText.value.trim();
-          if (title && text) {
-            if (editMode && editTarget) {
-              // Update the existing post with formatted content
-              const id = editTarget.dataset.id;
-              const time = new Date().toLocaleTimeString();
-              const formattedContent = formatCodeBlocks(text);
-              editTarget.innerHTML = `
-                <strong>${time}</strong>
-                <h3>${title}</h3>
-                ${formattedContent}
-              `;
-              const post = blogPosts.find(post => post.id == id);
-              if (post) {
-                post.time = time;
-                post.title = title;
-                post.content = formattedContent;
-              }
-              // Re-initialize Prism highlighting for the edited post
-              Prism.highlightAllUnder(editTarget);
-            } else {
-              addBlogPost(title, text);
-            }
-            saveBlogPosts();
-          }
-          closeComposeModal();
         } else if (e.key === 'ArrowDown') {
           // Select the next blog post
           if (selectedPost && selectedPost.nextElementSibling) {
