@@ -347,6 +347,86 @@
       cursor: pointer;
       z-index: 10000;
     }
+
+    /* Add these styles for the expanded blog post modal */
+    .blog-post-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 900px;
+      max-height: 90vh;
+      background: rgba(0, 0, 0, 0.9);
+      border: 2px solid #0f0;
+      border-radius: 15px;
+      padding: 25px;
+      z-index: 1000;
+      overflow-y: auto;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+      display: none;
+      box-sizing: border-box;
+    }
+
+    .blog-post-modal h3 {
+      font-size: 2em;
+      margin: 0 70px 20px 0;
+      color: #0f0;
+      text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+      letter-spacing: 1px;
+    }
+
+    .blog-post-modal strong {
+      position: absolute;
+      top: 25px;
+      right: 25px;
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+
+    .blog-post-modal .content {
+      font-size: 1.1em;
+      line-height: 1.6;
+    }
+
+    /* Overlay for expanded blog post */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      z-index: 999;
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .blog-post-modal {
+        width: 95%;
+        padding: 15px;
+        max-height: 80vh;
+      }
+
+      .blog-post-modal h3 {
+        font-size: 1.6em;
+        margin: 0 60px 15px 0;
+      }
+
+      .blog-post-modal strong {
+        top: 15px;
+        right: 15px;
+      }
+
+      .blog-post-modal .content {
+        font-size: 1em;
+        line-height: 1.5;
+      }
+    }
   </style>
 </head>
 <body>
@@ -401,6 +481,10 @@
   
   <!-- Back-to-top button -->
   <button id="back-to-top">Top</button>
+  
+  <!-- Modal overlay and expanded blog post container -->
+  <div class="modal-overlay"></div>
+  <div class="blog-post-modal"></div>
   
   <script>
     // Matrix background animation
@@ -468,6 +552,7 @@
       post.addEventListener('click', function(e) {
         e.stopPropagation();
         selectPost(post);
+        expandBlogPost(post);
       });
       // Remove the fade-in class after the animation completes
       post.addEventListener('animationend', function() {
@@ -837,6 +922,51 @@
         }
       }
       // ... rest of the existing keydown handler
+    });
+
+    // Add these functions after the existing JavaScript
+    const modalOverlay = document.querySelector('.modal-overlay');
+    const blogPostModal = document.querySelector('.blog-post-modal');
+
+    function expandBlogPost(post) {
+      const title = post.querySelector('h3').textContent;
+      const time = post.querySelector('strong').textContent;
+      // Get all text content after the h3 element, excluding the timestamp
+      const content = Array.from(post.childNodes)
+        .filter(node => !node.querySelector && node.textContent.trim())  // Get only text nodes
+        .map(node => node.textContent)
+        .join('<br>');
+      
+      blogPostModal.innerHTML = `
+        <strong>${time}</strong>
+        <h3>${title}</h3>
+        <div class="content">${content}</div>
+      `;
+      
+      modalOverlay.style.display = 'block';
+      blogPostModal.style.display = 'block';
+      
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeExpandedPost() {
+      modalOverlay.style.display = 'none';
+      blogPostModal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    // Add click handlers for closing the expanded post
+    modalOverlay.addEventListener('click', closeExpandedPost);
+    blogPostModal.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+
+    // Add escape key handler for closing the expanded post
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && blogPostModal.style.display === 'block') {
+        closeExpandedPost();
+      }
     });
   </script>
 </body>
