@@ -47,7 +47,8 @@
       transition: transform 0.5s ease-out, opacity 0.5s ease-out;
     }
     .blog-post.selected {
-      border: 2px solid red;
+      border: 2px solid #0f0;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
     }
     /* Compose modal for writing new blog posts */
     #compose-modal {
@@ -55,26 +56,41 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.9);
+      background: rgba(0, 0, 0, 0.8); /* More transparent black */
       padding: 20px;
-      border: 1px solid #0f0;
+      border: 2px solid #0f0;
       display: none;
       z-index: 2;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
     }
     #compose-modal textarea {
       width: 400px;
       height: 200px;
-      background: rgba(0, 0, 0, 0.2);           /* Translucent background */
-      color: #0f0;
-      border: 1px solid rgba(0, 255, 0, 0.4);     /* Semi-transparent green border */
+      background: rgba(0, 0, 0, 0.5);           /* Semi-transparent black */
+      color: #0f0;                             /* Green text */
+      border: 2px solid #0f0;                  /* Solid green border */
       font-family: 'Space Mono', monospace;
       font-size: 16px;
       padding: 10px;
       resize: none;
-      backdrop-filter: blur(10px);               /* Frosted glass blur effect */
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 6px 15px rgba(0, 255, 0, 0.15);
+      backdrop-filter: blur(5px);               /* Subtle frosted glass effect */
+      -webkit-backdrop-filter: blur(5px);
+      box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2);
       border-radius: 10px;
+      outline: none;                           /* Remove default focus outline */
+    }
+    /* Add focus state styling */
+    #compose-modal textarea:focus {
+      border-color: #0f0;
+      box-shadow: inset 0 0 15px rgba(0, 255, 0, 0.3), 0 0 15px rgba(0, 255, 0, 0.3);
+    }
+    #compose-modal p {
+      color: #0f0;
+      margin-top: 10px;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
     }
     /* Instruction overlay at the bottom */
     #instructions {
@@ -735,6 +751,30 @@
 
     backToTop.addEventListener('click', function() {
       blogContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Add click event to document to deselect when clicking outside
+    document.addEventListener('click', function(e) {
+      // Check if click is outside any blog post
+      if (!e.target.closest('.blog-post')) {
+        if (selectedPost) {
+          selectedPost.classList.remove('selected');
+          selectedPost = null;
+        }
+      }
+    });
+
+    // Update the keydown event listener to handle ESC for deselection
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        if (composeModal.style.display === 'block') {
+          closeComposeModal();
+        } else if (selectedPost) {
+          selectedPost.classList.remove('selected');
+          selectedPost = null;
+        }
+      }
+      // ... rest of the existing keydown handler
     });
   </script>
 </body>
