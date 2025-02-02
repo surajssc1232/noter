@@ -793,19 +793,12 @@
 
     // Open compose modal (clears previous text)
     function openComposeModal() {
-      composeText.value = '';
-      composeTitle.value = '';
+      editMode = false;
+      editTarget = null;
       composeModal.style.display = 'block';
-      composeText.focus();
-      // If on mobile, reset and then vanish the modal prompt after 2 seconds
-      if (window.innerWidth < 600) {
-        const modalPrompt = composeModal.querySelector('p');
-        modalPrompt.classList.remove('vanish'); // reset any vanish styling
-        modalPrompt.style.opacity = 1;           // ensure it is fully visible
-        setTimeout(() => {
-          modalPrompt.classList.add('vanish');
-        }, 2000);
-      }
+      composeTitle.value = '';
+      composeText.value = '';
+      composeTitle.focus();
     }
 
     // Close compose modal
@@ -855,9 +848,23 @@
 
     // Update the edit case in the keydown listener
     document.addEventListener('keydown', function(e) {
-      if (composeModal.style.display === 'block') {
-        if (e.key === 'Escape') {
-          closeComposeModal();
+      // Only handle keypress if not in an input/textarea
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        if (e.key.toLowerCase() === 'n') {
+          e.preventDefault(); // Prevent 'n' from being typed
+          editMode = false;
+          editTarget = null;
+          composeModal.style.display = 'block';
+          composeTitle.value = ''; // Clear title field
+          composeText.value = '';  // Clear content field
+          composeTitle.focus();    // Focus on title field first
+        } else if (e.key === 'Escape') {
+          if (composeModal.style.display === 'block') {
+            closeComposeModal();
+          } else if (selectedPost) {
+            selectedPost.classList.remove('selected');
+            selectedPost = null;
+          }
         } else if ((e.key === 'Enter' || e.key === 'Return') && e.ctrlKey) {
           const title = composeTitle.value.trim();
           const text = composeText.value.trim();
@@ -886,13 +893,6 @@
             saveBlogPosts();
           }
           closeComposeModal();
-        }
-      } else {
-        if (e.key.toLowerCase() === 'n') {
-          // Open compose modal for a new blog post
-          editMode = false;
-          editTarget = null;
-          openComposeModal();
         } else if (e.key === 'ArrowDown') {
           // Select the next blog post
           if (selectedPost && selectedPost.nextElementSibling) {
@@ -934,47 +934,6 @@
         }
       }
     });
-
-    // REMOVED: Mobile button event listeners
-    /*
-    // Mobile: Add event listener to New Post button
-    const newPostButton = document.getElementById('new-post-button');
-    newPostButton.addEventListener('click', function() {
-      editMode = false;
-      editTarget = null;
-      openComposeModal();
-    });
-
-    // Mobile: Post and Cancel buttons in compose modal
-    const postButton = document.getElementById('post-button');
-    const cancelButton = document.getElementById('cancel-button');
-
-    postButton.addEventListener('click', function(e) {
-      const text = composeText.value.trim();
-      if (text) {
-        if (editMode && editTarget) {
-          const id = editTarget.dataset.id;
-          const time = new Date().toLocaleTimeString();
-          editTarget.innerHTML = '<strong>' + time + '</strong><br>' + text.replace(/\n/g, '<br>');
-          const post = blogPosts.find(post => post.id == id);
-          if (post) {
-            post.time = time;
-            post.content = text;
-          }
-        } else {
-          addBlogPost(text);
-        }
-      }
-      closeComposeModal();
-      editMode = false;
-      editTarget = null;
-      saveBlogPosts();
-    });
-
-    cancelButton.addEventListener('click', function(e) {
-      closeComposeModal();
-    });
-    */
 
     // Load persisted blog posts on page load
     loadBlogPosts();
@@ -1106,19 +1065,6 @@
           selectedPost = null;
         }
       }
-    });
-
-    // Update the keydown event listener to handle ESC for deselection
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        if (composeModal.style.display === 'block') {
-          closeComposeModal();
-        } else if (selectedPost) {
-          selectedPost.classList.remove('selected');
-          selectedPost = null;
-        }
-      }
-      // ... rest of the existing keydown handler
     });
 
     // Add these functions after the existing JavaScript
