@@ -1005,7 +1005,7 @@
 
     // Fullscreen overlay behavior for mobile devices
     const fullscreenOverlay = document.getElementById('fullscreen-overlay');
-    if (window.innerWidth < 600) {
+    if (window.innerWidth < 600) {  // Mobile devices
       fullscreenOverlay.style.display = 'flex';
       fullscreenOverlay.addEventListener('click', function() {
         if (document.documentElement.requestFullscreen) {
@@ -1017,8 +1017,9 @@
         }
         fullscreenOverlay.style.display = 'none';
       });
-    } else {
+    } else {  // Desktop devices
       fullscreenOverlay.style.display = 'none';
+      fullscreenOverlay.remove();  // Remove the element completely from DOM on desktop
     }
 
     // Help modal behavior
