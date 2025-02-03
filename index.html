@@ -524,6 +524,34 @@
       50% { transform: scale(1.1); }
       100% { transform: scale(1); }
     }
+
+    /* Fullscreen button styling */
+    #fullscreen-btn {
+      display: none; /* Hidden by default */
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: none;
+      border: none;
+      color: #9d4edd;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 1000;
+      padding: 10px;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+
+    #fullscreen-btn:hover {
+      opacity: 1;
+    }
+
+    /* Show fullscreen button only on mobile */
+    @media (max-width: 600px) {
+      #fullscreen-btn {
+        display: block;
+      }
+    }
   </style>
 </head>
 <body>
@@ -595,6 +623,9 @@
 
   <!-- Add html2canvas library before closing body tag (after other scripts) -->
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+  <!-- Simple fullscreen button with arrow icon -->
+  <button id="fullscreen-btn">⇱</button>
 
   <script>
     // Replace the entire matrix animation code with this particle animation
@@ -1294,6 +1325,29 @@
         copyBtn.classList.remove('loading');
         copyBtn.textContent = 'Copy';
       }
+    }
+
+    // Fullscreen button functionality for mobile
+    if (window.innerWidth < 600) {
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      
+      fullscreenBtn.addEventListener('click', function() {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+          document.documentElement.msRequestFullscreen();
+        }
+      });
+
+      // Hide button after 3 seconds
+      setTimeout(() => {
+        fullscreenBtn.style.opacity = '0';
+        setTimeout(() => {
+          fullscreenBtn.style.display = 'none';
+        }, 300);
+      }, 3000);
     }
   </script>
 </body>
