@@ -181,8 +181,53 @@
       color: #9d4edd;
       text-shadow: 0 0 5px rgba(157, 78, 221, 0.3);
     }
-    
-
+    /* Removed mobile button styles:
+       #new-post-button and #compose-buttons are no longer used.
+    */
+    /* 
+    #new-post-button {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #0f0;
+      color: #0f0;
+      font-size: 16px;
+      padding: 10px 15px;
+      border-radius: 5px;
+      z-index: 4;
+      cursor: pointer;
+    }
+    #compose-buttons {
+      display: none;
+    }
+    */
+    /* Removed media queries for mobile buttons */
+    /*
+    @media (max-width: 600px) {
+      #new-post-button {
+        display: block;
+      }
+      #instructions {
+        display: none;
+      }
+      #compose-buttons {
+        display: block;
+        margin-top: 10px;
+        text-align: center;
+      }
+      #compose-buttons button {
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid #0f0;
+        color: #0f0;
+        font-size: 16px;
+        padding: 5px 10px;
+        margin: 0 5px;
+        cursor: pointer;
+      }
+    }
+    */
     /* Added vanish animation for mobile instruction messages/hints */
     #instructions.vanish {
       animation: vanish-out 1s forwards;
@@ -507,29 +552,6 @@
         display: block;
       }
     }
-
-    /* Style for the search bar */
-    #blog-search {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      background: rgba(26, 26, 26, 0.7);
-      color: #e0e0e0;
-      border: 1px solid rgba(157, 78, 221, 0.3);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 16px;
-      border-radius: 8px;
-      outline: none;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      box-shadow: inset 0 0 10px rgba(157, 78, 221, 0.1);
-      box-sizing: border-box;
-    }
-
-    #blog-search:focus {
-      border-color: #9d4edd;
-      box-shadow: inset 0 0 15px rgba(157, 78, 221, 0.2), 0 0 15px rgba(157, 78, 221, 0.2);
-    }
   </style>
 </head>
 <body>
@@ -537,24 +559,7 @@
   <canvas id="matrixCanvas"></canvas>
 
   <!-- Container for blog posts -->
-  <div id="blog-container">
-    <input type="search" id="blog-search" placeholder="Search blogs..." style="
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      background: rgba(26, 26, 26, 0.7);
-      color: #e0e0e0;
-      border: 1px solid rgba(157, 78, 221, 0.3);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 16px;
-      border-radius: 8px;
-      outline: none;
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      box-shadow: inset 0 0 10px rgba(157, 78, 221, 0.1);
-      box-sizing: border-box;
-    ">
-  </div>
+  <div id="blog-container"></div>
   
   <!-- Compose modal for new blog post (removed mobile buttons below) -->
   <div id="compose-modal">
@@ -1335,36 +1340,14 @@
           document.documentElement.msRequestFullscreen();
         }
       });
-    }
 
-    // Add search functionality
-    const blogSearch = document.getElementById('blog-search');
-
-    blogSearch.addEventListener('input', function() {
-      const searchTerm = this.value.toLowerCase();
-      const blogPosts = document.querySelectorAll('.blog-post');
-
-      blogPosts.forEach(post => {
-        const title = post.querySelector('h3').textContent.toLowerCase();
-        const content = post.textContent.toLowerCase(); // Includes all text in the post
-
-        if (title.includes(searchTerm) || content.includes(searchTerm)) {
-          post.style.display = 'block';
-        } else {
-          post.style.display = 'none';
-        }
-      });
-    });
-  </script>
-  <script>
-    // Add keyboard shortcut for focusing the search bar on PC
-    if (window.innerWidth > 600) {
-      document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key.toLowerCase() === 's') {
-          e.preventDefault(); // Prevent browser's default save action
-          document.getElementById('blog-search').focus();
-        }
-      });
+      // Hide button after 3 seconds
+      setTimeout(() => {
+        fullscreenBtn.style.opacity = '0';
+        setTimeout(() => {
+          fullscreenBtn.style.display = 'none';
+        }, 300);
+      }, 3000);
     }
   </script>
 </body>
