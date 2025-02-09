@@ -1340,14 +1340,16 @@
           document.documentElement.msRequestFullscreen();
         }
       });
+    }
 
-      // Hide button after 3 seconds
-      setTimeout(() => {
-        fullscreenBtn.style.opacity = '0';
-        setTimeout(() => {
-          fullscreenBtn.style.display = 'none';
-        }, 300);
-      }, 3000);
+    // Add keyboard shortcut for focusing the search bar on PC
+    if (window.innerWidth > 600) {
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key.toLowerCase() === 's') {
+          e.preventDefault(); // Prevent browser's default save action
+          document.getElementById('blog-search').focus();
+        }
+      });
     }
   </script>
 </body>
