@@ -122,7 +122,6 @@
       max-height: 90vh;  /* Limit height to 90% of viewport height */
       overflow-y: auto;  /* Allow scrolling if content is too tall */
       box-sizing: border-box;
-      position: relative;
     }
     #compose-modal input {
       width: 100%;
@@ -643,42 +642,6 @@
     #compose-text[data-has-image="true"]::placeholder {
       color: rgba(224, 224, 224, 0.5);
     }
-
-    /* Remove the mobile image controls styles */
-    /* Add styles for mobile image controls */
-    .mobile-image-controls {
-      display: none;
-    }
-
-    #image-upload-btn,
-    #paste-image-btn {
-      display: none;
-    }
-
-    /* Add styles for close button */
-    .close-btn {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      width: 24px;
-      height: 24px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #9d4edd;
-      font-size: 24px;
-      transition: all 0.3s ease;
-      opacity: 0.7;
-    }
-
-    .close-btn:hover {
-      opacity: 1;
-      transform: scale(1.1);
-    }
   </style>
 </head>
 <body>
@@ -690,7 +653,6 @@
   
   <!-- Compose modal for new blog post -->
   <div id="compose-modal">
-    <button class="close-btn">×</button>
     <input type="text" id="compose-title" placeholder="Blog title..." />
     <textarea id="compose-text" placeholder="Write your blog post here..."></textarea>
     <div id="compose-preview"></div>
@@ -1409,59 +1371,7 @@
     imagePasteIndicator.textContent = 'Image pasted! ✨';
     document.body.appendChild(imagePasteIndicator);
 
-    // Update the paste handler for better mobile support
-    async function handleImagePaste() {
-      try {
-        // Try to read image from clipboard
-        const clipboardItems = await navigator.clipboard.read();
-        
-        for (const clipboardItem of clipboardItems) {
-          for (const type of clipboardItem.types) {
-            if (type.startsWith('image/')) {
-              const blob = await clipboardItem.getType(type);
-              const reader = new FileReader();
-              
-              reader.onload = function(event) {
-                const base64data = event.target.result;
-                
-                // Store image data
-                composeText.value = `[IMAGE:${base64data}]`;
-                composeText.classList.add('hidden');
-                
-                // Show image preview
-                const previewDiv = document.getElementById('compose-preview');
-                previewDiv.innerHTML = `<img src="${base64data}" alt="Pasted image">`;
-                previewDiv.classList.add('show');
-                
-                // Show paste indicator
-                imagePasteIndicator.classList.add('show');
-                setTimeout(() => {
-                  imagePasteIndicator.classList.remove('show');
-                }, 2000);
-              };
-              
-              reader.readAsDataURL(blob);
-              return;
-            }
-          }
-        }
-      } catch (err) {
-        console.log('Clipboard access error:', err);
-        // Show error indicator
-        imagePasteIndicator.textContent = 'No image in clipboard';
-        imagePasteIndicator.classList.add('show');
-        setTimeout(() => {
-          imagePasteIndicator.classList.remove('show');
-          imagePasteIndicator.textContent = 'Image pasted! ✨';
-        }, 2000);
-      }
-    }
-
-    // Add paste button handler
-    const pasteImageBtn = document.getElementById('paste-image-btn');
-    pasteImageBtn.addEventListener('click', handleImagePaste);
-
-    // Update the existing paste event listener
+    // Update the paste handler
     composeText.addEventListener('paste', async function(e) {
       const items = (e.clipboardData || e.originalEvent.clipboardData).items;
       
@@ -1497,33 +1407,20 @@
       }
     });
 
-    // Update help modal to include only paste instructions
+    // Update help modal to include image paste instructions
     const helpContent = document.querySelector('#help-content ul');
     const imagePasteHelp = document.createElement('li');
     imagePasteHelp.innerHTML = '<strong>Ctrl+V</strong>: Paste images from clipboard';
+    const dragDropHelp = document.createElement('li');
+    dragDropHelp.innerHTML = '<strong>Drag & Drop</strong>: Drop images into editor';
     helpContent.appendChild(imagePasteHelp);
+    helpContent.appendChild(dragDropHelp);
 
-    // Update mobile instructions
+    // Update mobile instructions if needed
     if (window.innerWidth < 600) {
       const modalPrompt = composeModal.querySelector('p');
-      modalPrompt.textContent = 'Double tap to post';
+      modalPrompt.textContent = 'Double tap to post, Esc to cancel. You can paste images directly!';
     }
-
-    // Remove image upload button functionality
-    const imageUploadBtn = document.getElementById('image-upload-btn');
-    const imageInput = document.getElementById('image-input');
-    if (imageUploadBtn) {
-      imageUploadBtn.remove();
-    }
-    if (imageInput) {
-      imageInput.remove();
-    }
-
-    // Add close button functionality
-    const closeBtn = document.querySelector('.close-btn');
-    closeBtn.addEventListener('click', function() {
-      closeComposeModal();
-    });
   </script>
 </body>
 </html>
