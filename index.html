@@ -642,6 +642,34 @@
     #compose-text[data-has-image="true"]::placeholder {
       color: rgba(224, 224, 224, 0.5);
     }
+
+    /* Add styles for mobile image controls */
+    .mobile-image-controls {
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-start;
+      align-items: center;
+    }
+
+    #image-upload-btn,
+    #paste-image-btn {
+      background: rgba(157, 78, 221, 0.1);
+      border: 1px solid rgba(157, 78, 221, 0.3);
+      color: #9d4edd;
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    #image-upload-btn:hover,
+    #paste-image-btn:hover {
+      background: rgba(157, 78, 221, 0.2);
+      box-shadow: 0 0 10px rgba(157, 78, 221, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -654,6 +682,11 @@
   <!-- Compose modal for new blog post -->
   <div id="compose-modal">
     <input type="text" id="compose-title" placeholder="Blog title..." />
+    <div class="mobile-image-controls">
+      <button id="image-upload-btn">📷 Add Image</button>
+      <button id="paste-image-btn">📋 Paste Image</button>
+      <input type="file" id="image-input" accept="image/*" capture="environment" style="display: none;">
+    </div>
     <textarea id="compose-text" placeholder="Write your blog post here..."></textarea>
     <div id="compose-preview"></div>
     <p style="color:#9d4edd;">Press Ctrl+Enter to post, Esc to cancel.</p>
@@ -1371,7 +1404,59 @@
     imagePasteIndicator.textContent = 'Image pasted! ✨';
     document.body.appendChild(imagePasteIndicator);
 
-    // Update the paste handler
+    // Update the paste handler for better mobile support
+    async function handleImagePaste() {
+      try {
+        // Try to read image from clipboard
+        const clipboardItems = await navigator.clipboard.read();
+        
+        for (const clipboardItem of clipboardItems) {
+          for (const type of clipboardItem.types) {
+            if (type.startsWith('image/')) {
+              const blob = await clipboardItem.getType(type);
+              const reader = new FileReader();
+              
+              reader.onload = function(event) {
+                const base64data = event.target.result;
+                
+                // Store image data
+                composeText.value = `[IMAGE:${base64data}]`;
+                composeText.classList.add('hidden');
+                
+                // Show image preview
+                const previewDiv = document.getElementById('compose-preview');
+                previewDiv.innerHTML = `<img src="${base64data}" alt="Pasted image">`;
+                previewDiv.classList.add('show');
+                
+                // Show paste indicator
+                imagePasteIndicator.classList.add('show');
+                setTimeout(() => {
+                  imagePasteIndicator.classList.remove('show');
+                }, 2000);
+              };
+              
+              reader.readAsDataURL(blob);
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.log('Clipboard access error:', err);
+        // Show error indicator
+        imagePasteIndicator.textContent = 'No image in clipboard';
+        imagePasteIndicator.classList.add('show');
+        setTimeout(() => {
+          imagePasteIndicator.classList.remove('show');
+          imagePasteIndicator.textContent = 'Image pasted! ✨';
+        }, 2000);
+      }
+    }
+
+    // Add paste button handler
+    const pasteImageBtn = document.getElementById('paste-image-btn');
+    pasteImageBtn.addEventListener('click', handleImagePaste);
+
+    // Update the existing paste event listener
     composeText.addEventListener('paste', async function(e) {
       const items = (e.clipboardData || e.originalEvent.clipboardData).items;
       
@@ -1407,20 +1492,56 @@
       }
     });
 
-    // Update help modal to include image paste instructions
+    // Update help modal to include mobile paste instructions
     const helpContent = document.querySelector('#help-content ul');
     const imagePasteHelp = document.createElement('li');
-    imagePasteHelp.innerHTML = '<strong>Ctrl+V</strong>: Paste images from clipboard';
-    const dragDropHelp = document.createElement('li');
-    dragDropHelp.innerHTML = '<strong>Drag & Drop</strong>: Drop images into editor';
+    imagePasteHelp.innerHTML = '<strong>📋 Paste Image</strong>: Paste image from clipboard';
+    const imageUploadHelp = document.createElement('li');
+    imageUploadHelp.innerHTML = '<strong>📷 Add Image</strong>: Take photo or choose from gallery';
     helpContent.appendChild(imagePasteHelp);
-    helpContent.appendChild(dragDropHelp);
+    helpContent.appendChild(imageUploadHelp);
 
     // Update mobile instructions if needed
     if (window.innerWidth < 600) {
       const modalPrompt = composeModal.querySelector('p');
-      modalPrompt.textContent = 'Double tap to post, Esc to cancel. You can paste images directly!';
+      modalPrompt.textContent = 'Double tap to post, tap 📷 to add image';
     }
+
+    // Add mobile image upload functionality
+    const imageUploadBtn = document.getElementById('image-upload-btn');
+    const imageInput = document.getElementById('image-input');
+
+    imageUploadBtn.addEventListener('click', function() {
+      imageInput.click();
+    });
+
+    imageInput.addEventListener('change', function(e) {
+      if (this.files && this.files[0]) {
+        const file = this.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+          const base64data = event.target.result;
+          
+          // Store image data
+          composeText.value = `[IMAGE:${base64data}]`;
+          composeText.classList.add('hidden');
+          
+          // Show image preview
+          const previewDiv = document.getElementById('compose-preview');
+          previewDiv.innerHTML = `<img src="${base64data}" alt="Selected image">`;
+          previewDiv.classList.add('show');
+          
+          // Show paste indicator
+          imagePasteIndicator.classList.add('show');
+          setTimeout(() => {
+            imagePasteIndicator.classList.remove('show');
+          }, 2000);
+        };
+        
+        reader.readAsDataURL(file);
+      }
+    });
   </script>
 </body>
 </html>
