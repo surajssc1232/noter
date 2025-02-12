@@ -157,6 +157,28 @@
       box-sizing: border-box;
       margin-bottom: 15px;
     }
+    #compose-text.hidden {
+      display: none;
+    }
+    #compose-preview {
+      width: 100%;
+      min-height: 20px;
+      background: rgba(26, 26, 26, 0.7);
+      border: 1px solid rgba(157, 78, 221, 0.3);
+      border-radius: 10px;
+      padding: 10px;
+      box-sizing: border-box;
+      margin-bottom: 15px;
+      display: none;
+    }
+    #compose-preview.show {
+      display: block;
+    }
+    #compose-preview img {
+      width: 100%;
+      border-radius: 8px;
+      display: block;
+    }
     /* Add focus state styling */
     #compose-modal input:focus,
     #compose-modal textarea:focus {
@@ -552,6 +574,74 @@
         display: block;
       }
     }
+
+    /* Add styles for image paste indicator */
+    .image-paste-indicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(157, 78, 221, 0.9);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .image-paste-indicator.show {
+      opacity: 1;
+    }
+
+    /* Blog post image styles */
+    .blog-post img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin: 10px 0;
+      display: block;
+    }
+
+    .blog-post .content {
+      width: 100%;
+    }
+
+    /* Remove the old image container styles */
+    .blog-image-container {
+      margin: 0;
+      padding: 0;
+      background: none;
+      border: none;
+    }
+
+    /* Style for the compose preview */
+    #compose-preview {
+      width: 100%;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    #compose-preview img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin: 10px 0;
+      display: block;
+    }
+
+    /* Hide image markers in the textarea */
+    #compose-text {
+      position: relative;
+    }
+
+    #compose-text[data-has-image="true"] {
+      color: transparent;
+      text-shadow: 0 0 0 rgba(224, 224, 224, 0.5);
+    }
+
+    #compose-text[data-has-image="true"]::placeholder {
+      color: rgba(224, 224, 224, 0.5);
+    }
   </style>
 </head>
 <body>
@@ -561,18 +651,12 @@
   <!-- Container for blog posts -->
   <div id="blog-container"></div>
   
-  <!-- Compose modal for new blog post (removed mobile buttons below) -->
+  <!-- Compose modal for new blog post -->
   <div id="compose-modal">
     <input type="text" id="compose-title" placeholder="Blog title..." />
     <textarea id="compose-text" placeholder="Write your blog post here..."></textarea>
-    <!-- Updated prompt for mobile (will be overwritten by JS on mobile) -->
+    <div id="compose-preview"></div>
     <p style="color:#9d4edd;">Press Ctrl+Enter to post, Esc to cancel.</p>
-    <!-- Removed mobile compose buttons
-    <div id="compose-buttons">
-      <button id="post-button">Post</button>
-      <button id="cancel-button">Cancel</button>
-    </div>
-    -->
   </div>
   
   <!-- Instruction overlay -->
@@ -767,10 +851,11 @@
       const post = document.createElement('div');
       post.classList.add('blog-post', 'new-post');
       post.dataset.id = postData.id;
+      
       post.innerHTML = `
         <strong>${postData.time}</strong>
         <h3>${postData.title}</h3>
-        ${postData.content}
+        <div class="content">${postData.content}</div>
         <button class="copy-btn">Copy</button>
       `;
 
@@ -778,17 +863,20 @@
       const copyBtn = post.querySelector('.copy-btn');
       copyBtn.addEventListener('click', (e) => copyBlogPost(post, e));
 
-      // Add click event so user can select the post with a mouse click
+      // Add click event for post selection and expansion
       post.addEventListener('click', function(e) {
-        e.stopPropagation();
-        selectPost(post);
-        expandBlogPost(post);
+        if (e.target.tagName !== 'BUTTON') {
+          e.stopPropagation();
+          selectPost(post);
+          expandBlogPost(post);
+        }
       });
-      // Remove the fade-in class after the animation completes
+
       post.addEventListener('animationend', function() {
         post.classList.remove('new-post');
       });
-      // Add swipe-left detection for mobile devices to delete a blog post
+
+      // Mobile swipe handling
       if (window.innerWidth < 600) {
         let touchStartX = 0;
         post.addEventListener('touchstart', function(e) {
@@ -796,8 +884,7 @@
         });
         post.addEventListener('touchend', function(e) {
           let touchEndX = e.changedTouches[0].clientX;
-          if (touchStartX - touchEndX > 50) {  // if swiped left more than 50px
-            // Add slide-out animation then delete the blog post after the transition ends
+          if (touchStartX - touchEndX > 50) {
             post.classList.add('slide-out-left');
             post.addEventListener('transitionend', function() {
               const nextSelection = post.nextElementSibling || post.previousElementSibling;
@@ -860,6 +947,12 @@
     // Close compose modal
     function closeComposeModal() {
       composeModal.style.display = 'none';
+      composeText.value = '';
+      composeTitle.value = '';
+      composeText.classList.remove('hidden');
+      const previewDiv = document.getElementById('compose-preview');
+      previewDiv.innerHTML = '';
+      previewDiv.classList.remove('show');
       editMode = false;
       editTarget = null;
     }
@@ -868,15 +961,24 @@
     function addBlogPost(title, text) {
       const id = Date.now();
       const time = new Date().toLocaleTimeString();
-      const formattedContent = formatCodeBlocks(text);
-      const postData = { id, time, title, content: formattedContent };
+      
+      // Process the content
+      const content = text.replace(/\[IMAGE:(data:image\/[^;]+;base64,[^\]]+)\]/g, (match, base64) => {
+        return `<img src="${base64}" alt="Pasted image"/>`;
+      });
+      
+      const postData = { id, time, title, content };
       blogPosts.push(postData);
+      
       const post = createBlogPostElement(postData);
       blogContainer.prepend(post);
       saveBlogPosts();
       
-      // Re-initialize Prism highlighting for the new post
-      Prism.highlightAllUnder(post);
+      // Reset the compose modal
+      composeText.classList.remove('hidden');
+      const previewDiv = document.getElementById('compose-preview');
+      previewDiv.innerHTML = '';
+      previewDiv.classList.remove('show');
     }
 
     // Update the edit functionality in the keydown listener
@@ -1115,10 +1217,7 @@
     function expandBlogPost(post) {
       const title = post.querySelector('h3').textContent;
       const time = post.querySelector('strong').textContent;
-      const content = Array.from(post.childNodes)
-        .filter(node => !node.querySelector('h3') && !node.querySelector('strong'))
-        .map(node => node.outerHTML || node.textContent)
-        .join('');
+      const content = post.querySelector('.content').innerHTML;
       
       blogPostModal.innerHTML = `
         <strong>${time}</strong>
@@ -1127,12 +1226,8 @@
         <button class="copy-btn">Copy</button>
       `;
       
-      // Add copy button event listener for modal
       const modalCopyBtn = blogPostModal.querySelector('.copy-btn');
       modalCopyBtn.addEventListener('click', (e) => copyBlogPost(blogPostModal, e));
-      
-      // Re-initialize Prism highlighting in the modal
-      Prism.highlightAllUnder(blogPostModal);
       
       modalOverlay.style.display = 'block';
       blogPostModal.style.display = 'block';
@@ -1157,107 +1252,6 @@
         closeExpandedPost();
       }
     });
-
-    // Add this function to detect code language
-    function detectLanguage(code) {
-      // Common language patterns
-      const patterns = {
-        javascript: /(var|let|const|function|=>|console\.log|document\.|window\.)/,
-        python: /(def|import|print|class|if\s+[\w_]+:)/,
-        java: /(public|private|class|void|String|int|boolean)/,
-        cpp: /(#include|std::|cout|cin|void|int\s+main)/,
-        csharp: /(using\s+System|namespace|public\s+class)/,
-        html: /(<\/?[a-z][\s\S]*>)/i,
-        css: /({[\s\S]*?}|@media|@keyframes|#[\w-]+\s*{)/,
-        ruby: /(def|require|puts|attr_|module)/,
-        sql: /(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)/i
-      };
-
-      // Check each pattern
-      for (const [language, pattern] of Object.entries(patterns)) {
-        if (pattern.test(code)) {
-          return language;
-        }
-      }
-
-      return 'plaintext';
-    }
-
-    // Update the formatCodeBlocks function to handle automatic language detection
-    function formatCodeBlocks(content) {
-      let formattedContent = '';
-      
-      // Split content into text and potential code blocks
-      const lines = content.split('\n');
-      let inCodeBlock = false;
-      let codeBlock = '';
-      let tempContent = '';
-      
-      lines.forEach((line, index) => {
-        // Check for code-like content (indentation or special characters)
-        const isCodeLike = /^(\s{4,}|\t+).*$/.test(line) || 
-                          /[{}\[\]()$<>]/.test(line) ||
-                          /^(const|let|var|function|class|def|import|public|#include)/.test(line);
-                          
-        if (isCodeLike && !inCodeBlock) {
-          // Start a new code block
-          if (tempContent) {
-            formattedContent += tempContent.replace(/\n/g, '<br>');
-            tempContent = '';
-          }
-          inCodeBlock = true;
-          codeBlock = line + '\n';
-        } else if (!isCodeLike && inCodeBlock) {
-          // End code block
-          if (codeBlock) {
-            const language = detectLanguage(codeBlock);
-            formattedContent += `<pre class="line-numbers"><code class="language-${language}">${
-              codeBlock.replace(/&/g, '&amp;')
-                      .replace(/</g, '&lt;')
-                      .replace(/>/g, '&gt;')
-                      .trim()
-            }</code></pre>`;
-            codeBlock = '';
-          }
-          inCodeBlock = false;
-          tempContent = line + '\n';
-        } else if (inCodeBlock) {
-          // Continue code block
-          codeBlock += line + '\n';
-        } else {
-          // Continue regular text
-          tempContent += line + '\n';
-        }
-        
-        // Handle the last line
-        if (index === lines.length - 1) {
-          if (inCodeBlock && codeBlock) {
-            const language = detectLanguage(codeBlock);
-            formattedContent += `<pre class="line-numbers"><code class="language-${language}">${
-              codeBlock.replace(/&/g, '&amp;')
-                      .replace(/</g, '&lt;')
-                      .replace(/>/g, '&gt;')
-                      .trim()
-            }</code></pre>`;
-          } else if (tempContent) {
-            formattedContent += tempContent.replace(/\n/g, '<br>');
-          }
-        }
-      });
-      
-      // Also handle explicit code blocks with backticks if they exist
-      formattedContent = formattedContent.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-        const language = lang || detectLanguage(code) || 'plaintext';
-        return `<pre class="line-numbers"><code class="language-${language}">${
-          code.replace(/&/g, '&amp;')
-             .replace(/</g, '&lt;')
-             .replace(/>/g, '&gt;')
-             .trim()
-        }</code></pre>`;
-      });
-      
-      return formattedContent;
-    }
 
     // Replace downloadBlogPost with copyBlogPost
     async function copyBlogPost(post, event) {
@@ -1369,6 +1363,63 @@
           document.getElementById('blog-search').focus();
         }
       });
+    }
+
+    // Create image paste indicator element
+    const imagePasteIndicator = document.createElement('div');
+    imagePasteIndicator.className = 'image-paste-indicator';
+    imagePasteIndicator.textContent = 'Image pasted! ✨';
+    document.body.appendChild(imagePasteIndicator);
+
+    // Update the paste handler
+    composeText.addEventListener('paste', async function(e) {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      
+      for (const item of items) {
+        if (item.type.indexOf('image') === 0) {
+          e.preventDefault();
+          
+          const blob = item.getAsFile();
+          const reader = new FileReader();
+          
+          reader.onload = function(event) {
+            const base64data = event.target.result;
+            
+            // Store image data
+            composeText.value = `[IMAGE:${base64data}]`;
+            composeText.classList.add('hidden');
+            
+            // Show image preview
+            const previewDiv = document.getElementById('compose-preview');
+            previewDiv.innerHTML = `<img src="${base64data}" alt="Pasted image">`;
+            previewDiv.classList.add('show');
+            
+            // Show paste indicator
+            imagePasteIndicator.classList.add('show');
+            setTimeout(() => {
+              imagePasteIndicator.classList.remove('show');
+            }, 2000);
+          };
+          
+          reader.readAsDataURL(blob);
+          return;
+        }
+      }
+    });
+
+    // Update help modal to include image paste instructions
+    const helpContent = document.querySelector('#help-content ul');
+    const imagePasteHelp = document.createElement('li');
+    imagePasteHelp.innerHTML = '<strong>Ctrl+V</strong>: Paste images from clipboard';
+    const dragDropHelp = document.createElement('li');
+    dragDropHelp.innerHTML = '<strong>Drag & Drop</strong>: Drop images into editor';
+    helpContent.appendChild(imagePasteHelp);
+    helpContent.appendChild(dragDropHelp);
+
+    // Update mobile instructions if needed
+    if (window.innerWidth < 600) {
+      const modalPrompt = composeModal.querySelector('p');
+      modalPrompt.textContent = 'Double tap to post, Esc to cancel. You can paste images directly!';
     }
   </script>
 </body>
