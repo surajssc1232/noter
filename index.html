@@ -643,32 +643,15 @@
       color: rgba(224, 224, 224, 0.5);
     }
 
+    /* Remove the mobile image controls styles */
     /* Add styles for mobile image controls */
     .mobile-image-controls {
-      margin-bottom: 15px;
-      display: flex;
-      gap: 10px;
-      justify-content: flex-start;
-      align-items: center;
+      display: none;
     }
 
     #image-upload-btn,
     #paste-image-btn {
-      background: rgba(157, 78, 221, 0.1);
-      border: 1px solid rgba(157, 78, 221, 0.3);
-      color: #9d4edd;
-      padding: 8px 15px;
-      border-radius: 5px;
-      font-family: 'JetBrains Mono', monospace;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      white-space: nowrap;
-    }
-
-    #image-upload-btn:hover,
-    #paste-image-btn:hover {
-      background: rgba(157, 78, 221, 0.2);
-      box-shadow: 0 0 10px rgba(157, 78, 221, 0.3);
+      display: none;
     }
   </style>
 </head>
@@ -682,11 +665,6 @@
   <!-- Compose modal for new blog post -->
   <div id="compose-modal">
     <input type="text" id="compose-title" placeholder="Blog title..." />
-    <div class="mobile-image-controls">
-      <button id="image-upload-btn">📷 Add Image</button>
-      <button id="paste-image-btn">📋 Paste Image</button>
-      <input type="file" id="image-input" accept="image/*" capture="environment" style="display: none;">
-    </div>
     <textarea id="compose-text" placeholder="Write your blog post here..."></textarea>
     <div id="compose-preview"></div>
     <p style="color:#9d4edd;">Press Ctrl+Enter to post, Esc to cancel.</p>
@@ -1492,56 +1470,27 @@
       }
     });
 
-    // Update help modal to include mobile paste instructions
+    // Update help modal to include only paste instructions
     const helpContent = document.querySelector('#help-content ul');
     const imagePasteHelp = document.createElement('li');
-    imagePasteHelp.innerHTML = '<strong>📋 Paste Image</strong>: Paste image from clipboard';
-    const imageUploadHelp = document.createElement('li');
-    imageUploadHelp.innerHTML = '<strong>📷 Add Image</strong>: Take photo or choose from gallery';
+    imagePasteHelp.innerHTML = '<strong>Ctrl+V</strong>: Paste images from clipboard';
     helpContent.appendChild(imagePasteHelp);
-    helpContent.appendChild(imageUploadHelp);
 
-    // Update mobile instructions if needed
+    // Update mobile instructions
     if (window.innerWidth < 600) {
       const modalPrompt = composeModal.querySelector('p');
-      modalPrompt.textContent = 'Double tap to post, tap 📷 to add image';
+      modalPrompt.textContent = 'Double tap to post';
     }
 
-    // Add mobile image upload functionality
+    // Remove image upload button functionality
     const imageUploadBtn = document.getElementById('image-upload-btn');
     const imageInput = document.getElementById('image-input');
-
-    imageUploadBtn.addEventListener('click', function() {
-      imageInput.click();
-    });
-
-    imageInput.addEventListener('change', function(e) {
-      if (this.files && this.files[0]) {
-        const file = this.files[0];
-        const reader = new FileReader();
-        
-        reader.onload = function(event) {
-          const base64data = event.target.result;
-          
-          // Store image data
-          composeText.value = `[IMAGE:${base64data}]`;
-          composeText.classList.add('hidden');
-          
-          // Show image preview
-          const previewDiv = document.getElementById('compose-preview');
-          previewDiv.innerHTML = `<img src="${base64data}" alt="Selected image">`;
-          previewDiv.classList.add('show');
-          
-          // Show paste indicator
-          imagePasteIndicator.classList.add('show');
-          setTimeout(() => {
-            imagePasteIndicator.classList.remove('show');
-          }, 2000);
-        };
-        
-        reader.readAsDataURL(file);
-      }
-    });
+    if (imageUploadBtn) {
+      imageUploadBtn.remove();
+    }
+    if (imageInput) {
+      imageInput.remove();
+    }
   </script>
 </body>
 </html>
