@@ -122,6 +122,7 @@
       max-height: 90vh;  /* Limit height to 90% of viewport height */
       overflow-y: auto;  /* Allow scrolling if content is too tall */
       box-sizing: border-box;
+      position: relative;
     }
     #compose-modal input {
       width: 100%;
@@ -653,6 +654,31 @@
     #paste-image-btn {
       display: none;
     }
+
+    /* Add styles for close button */
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 24px;
+      height: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9d4edd;
+      font-size: 24px;
+      transition: all 0.3s ease;
+      opacity: 0.7;
+    }
+
+    .close-btn:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
   </style>
 </head>
 <body>
@@ -664,6 +690,7 @@
   
   <!-- Compose modal for new blog post -->
   <div id="compose-modal">
+    <button class="close-btn">×</button>
     <input type="text" id="compose-title" placeholder="Blog title..." />
     <textarea id="compose-text" placeholder="Write your blog post here..."></textarea>
     <div id="compose-preview"></div>
@@ -1491,6 +1518,12 @@
     if (imageInput) {
       imageInput.remove();
     }
+
+    // Add close button functionality
+    const closeBtn = document.querySelector('.close-btn');
+    closeBtn.addEventListener('click', function() {
+      closeComposeModal();
+    });
   </script>
 </body>
 </html>
